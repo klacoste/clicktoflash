@@ -30,8 +30,6 @@
 #import "CTFUserDefaultsController.h"
 #import "CTFPreferencesDictionary.h"
 
-#import <objc/runtime.h>
-
 // NSUserDefaults keys
 static NSString *sAutomaticallyCheckForUpdates = @"checkForUpdatesOnFirstLoad";
 
@@ -72,56 +70,20 @@ static NSString *sAutomaticallyCheckForUpdates = @"checkForUpdatesOnFirstLoad";
 	return framework;
 }
 
-- (NSBundle *)sparkleFrameworkRespectingHost
+- (SUUpdater *)_updater
 {
-	// Check the host for an embedded version of Sparkle.
-	// If we find one and it's version equals our own, return the host bundle.
-	// If it's version is not compatible with ours, return nil. (disables update checks)
-	// If the host doesn't make use of Sparkle, we return our own version of the bundle.
-	// * This doesn't handle playing nice with other plugins.
+	if (_updater) return _updater;
 	
-	NSBundle *sparkleBundle = nil;
+	// Early exit. If the host uses Sparkle for updates, we won't.
 	
-	NSBundle *sparkleForPlugin = [self frameworkForBundle:[NSBundle bundleForClass:[self class]]];
-	NSBundle *sparkleForHost = [self frameworkForBundle:[NSBundle mainBundle]];
+	NSBundle *sparkleFramework = [NSBundle bundleWithIdentifier:@"org.andymatuschak.Sparkle"];
 	
-	if (sparkleForHost)
-	{
-		// The host provides Sparkle services. Use those if they match our requirements.
-		
-		NSString *hostVersion = [sparkleForHost objectForInfoDictionaryKey:@"CFBundleVersion"];
-		NSString *bundledVersion = [sparkleForPlugin objectForInfoDictionaryKey:@"CFBundleVersion"];
-		
-		if ([hostVersion isEqualToString:bundledVersion])
-		{
-			sparkleBundle = sparkleForHost;
-		}
-	}
+	if (sparkleFramework) return nil;
 	
-	else
-	{
-		// The host doesn't provide Sparkle. We'll use our version.
-		
-		sparkleBundle = sparkleForPlugin;
-	}
+	// If the host doesn't use Sparkle, we can load our embedded version and set it up here.
 	
-	return sparkleBundle;
-}
-
-- (SUUpdater*)_updater {
-	
-    if (_updater)
-        return _updater;
-    
-	NSBundle *sparkleFramework = [self sparkleFrameworkRespectingHost];
-	
-	// Since we only use Sparkle if it's the required version, we can assume the
-	// required methods are present. We fail silently (log to console) if we encounter
-	// any errors. Since we don't require major diagnostics the error handling is
-	// mostly via nil messaging.
-	
-	Class updaterClass = [sparkleFramework classNamed:@"SUUpdater"];
 	NSBundle *clickToFlashBundle = [NSBundle bundleWithIdentifier:@"com.github.rentzsch.clicktoflash"];
+	Class updaterClass = [[self frameworkForBundle:clickToFlashBundle] classNamed:@"SUUpdater"];
 	
 	if (clickToFlashBundle)
 	{
@@ -130,7 +92,7 @@ static NSString *sAutomaticallyCheckForUpdates = @"checkForUpdatesOnFirstLoad";
 		[_updater setDelegate:self];
 	}
 	
-	if (_updater == nil) NSLog(@"ClickToFlash Sparkle updates disabled for host.", _cmd);
+	if (_updater == nil) NSLog(@"ClickToFlash - Sparkle failed to load.");
 	
 	return _updater;
 }
