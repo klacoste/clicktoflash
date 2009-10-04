@@ -4,6 +4,20 @@ This is the ClickToFlash developer site.
 
 ##Version History
 
+* **1.5.3** [download](http://cloud.github.com/downloads/rentzsch/clicktoflash/ClickToFlash-1.5.3.zip)
+
+	* [FIX] Crasher where parsed flash variables (such as `video_id`) were being released prematurely. [bug 261](http://rentzsch.lighthouseapp.com/projects/24342/tickets/261) ([Jeff Johnson](http://github.com/rentzsch/clicktoflash/commit/ef9be0b8697a2c88f1eccc5be8502fec1511f07a))
+
+	* [FIX] Duplicate whitelist entries (caused by a bug in 1.5b4) are now detected and removed, fixing slow-downs, hangs and crashes. [bug 264](http://rentzsch.lighthouseapp.com/projects/24342/tickets/264) ([Simone Manganelli](http://github.com/rentzsch/clicktoflash/commit/12ecfb2a7c23e5434054f3f9085a3fcda6374842)).
+
+	* [CHANGE] Disables H.264 YouTube auto-play by default. [bug 276](http://rentzsch.lighthouseapp.com/projects/24342/tickets/276) ([fppzdd](http://github.com/rentzsch/clicktoflash/commit/c9e2bfac1492618c4a92da298af4a4d051ef927f))
+
+	* [FIX] Embedded YouTube videos were showing a question mark when loaded using the VIDEO element. [bug 294](http://rentzsch.lighthouseapp.com/projects/24342/tickets/294) ([Simone Manganelli](http://github.com/rentzsch/clicktoflash/commit/1f9d11d007165bd70abd96d1ff2223c0db183345))
+
+	* [CHANGE] Rename `CTGradient` to `CTFGradient` to reduce namespace collisions. ([roddi](http://github.com/rentzsch/clicktoflash/commit/0f55f2c2c191e80888c906223c0d5362477de660))
+
+	* [FIX] Avoid leaking the original opacity settings dictionary. ([Sven-S. Porst](http://github.com/rentzsch/clicktoflash/commit/16dd94112c715a57d30d9b7f4ff10bb9e166c869))
+
 * **1.5.2** [download](http://s3.amazonaws.com/clicktoflash/ClickToFlash-1.5.2.zip)
 
 	* [NEW] Start signing Sparkle updates. ([rentzsch](http://github.com/rentzsch/clicktoflash/commit/c8f4d7f897a039d5d04ea92e178a15238adcacab))
@@ -292,3 +306,14 @@ flash boxes when whitelisting one ([bug 10](http://rentzsch.lighthouseapp.com/pr
 	* [DEV] Store white-listed sites in an array instead of composite keys. ([Jean-Francois Roy](https://twitter.com/jfroy/status/1150564777))
 
 * **1.0** original Google Code release
+
+##Hidden Defaults
+
+ClickToFlash has a few hidden preferences that can be used to control its functionality.  These preferences have been added for development or experimental reasons and are **not** guaranteed to persist in future versions of ClickToFlash.
+
+To use these hidden preferences, open the Terminal and type the following command: `defaults write com.github.rentzsch.clicktoflash defaultName defaultValue`, replacing `defaultName` and `defaultValue` with the appropriate values, then press return.  To restore default functionality, use the following Terminal command: `defaults delete com.github.rentzsch.clicktoflash defaultName`, replacing `defaultName` with the appropriate value.
+
+* defaultName: **enableYouTubeAutoPlay**; possible defaultValues: **"YES"**, **"NO"**; autoplays videos on YouTube once you click on the ClickToFlash view, assuming you're either logged out of YouTube or are logged in and have enabled this feature in your YouTube account settings.
+* defaultName: **disableVideoElement**; possible defaultValues: **"YES"**, **"NO"**; disables the usage of the HTML 5 VIDEO tag, and uses the old QuickTime plug-in instead.  Note, the VIDEO tag usually exhibits much better performance and lower CPU usage because it supports hardware acceleration, whereas the old QuickTime plug-in does not.  However, some Macs seem to see an adverse effect on performance with the VIDEO tag.
+* defaultName: **drawGearImageOnlyOnMouseOver**; possible defaultValues: **"YES"**, **"NO"**; shows the gear menu only when you're mousing over the ClickToFlash view, reducing visual noise for Flash-heavy pages.
+* defaultName: **applicationWhitelist**; to use this hidden pref, use the following syntax: `defaults write com.github.rentzsch.clicktoflash applicationWhitelist -array-add bundleID` .  This whitelists Flash for a particular application, and causes ClickToFlash to automatically load all Flash inside the application whose bundle ID is "bundleID".  (This hidden pref *is* guaranteed to persist in future versions.)

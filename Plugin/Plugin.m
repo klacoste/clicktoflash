@@ -55,6 +55,7 @@ static NSString *sPluginEnabled = @"pluginEnabled";
 static NSString *sApplicationWhitelist = @"applicationWhitelist";
 static NSString *sDrawGearImageOnlyOnMouseOverHiddenPref = @"drawGearImageOnlyOnMouseOver";
 static NSString *sDisableVideoElement = @"disableVideoElement";
+static NSString *sYouTubeAutoPlay = @"enableYouTubeAutoPlay";
 
 	// Info.plist key for app developers
 static NSString *sCTFOptOutKey = @"ClickToFlashOptOut";
@@ -121,7 +122,6 @@ BOOL usingMATrackingArea = NO;
 		_hasHDH264Version = NO;
 		_contextMenuIsVisible = NO;
 		_embeddedYouTubeView = NO;
-		_isSIFR = NO;
 		_youTubeAutoPlay = NO;
 		_delayingTimer = nil;
 		defaultWhitelist = [NSArray arrayWithObjects:	@"com.apple.frontrow",
@@ -154,6 +154,7 @@ BOOL usingMATrackingArea = NO;
         
         [self _migrateWhitelist];
 		[self _migratePrefsToExternalFile];
+		[self _uniquePrefsFileWhitelist];
 		[self _addApplicationWhitelistArrayToPrefsFile];
         
 		
@@ -207,11 +208,15 @@ BOOL usingMATrackingArea = NO;
         if (_fromYouTube) {
 			
 			// Check wether autoplay is wanted
-			if ([[self host] isEqualToString:@"www.youtube.com"]
-				|| [[self host] isEqualToString:@"www.youtube-nocookie.com"]) {
-				_youTubeAutoPlay = YES;
+			if ([[CTFUserDefaultsController standardUserDefaults] objectForKey:sYouTubeAutoPlay]) {
+				if ([[self host] isEqualToString:@"www.youtube.com"]
+					|| [[self host] isEqualToString:@"www.youtube-nocookie.com"]) {
+					_youTubeAutoPlay = YES;
+				} else {
+					_youTubeAutoPlay = [[[self _flashVarDictionary:[self src]] objectForKey:@"autoplay"] isEqualToString:@"1"];
+				}
 			} else {
-				_youTubeAutoPlay = [[[self _flashVarDictionary:[self src]] objectForKey:@"autoplay"] isEqualToString:@"1"];
+				_youTubeAutoPlay = NO;
 			}
 
 			
@@ -458,6 +463,7 @@ BOOL usingMATrackingArea = NO;
 	[self setWebView:nil];
 	[self setBaseURL:nil];
 	[self setAttributes:nil];
+	[self setOriginalOpacityAttributes:nil];
 	
 	[_flashVars release];
 	_flashVars = nil;
@@ -520,6 +526,10 @@ BOOL usingMATrackingArea = NO;
 					NSMutableArray *combinedWhitelist = [NSMutableArray arrayWithArray:prefValue];
 					[combinedWhitelist addObjectsFromArray:existingExternalPref];
 					[externalFileDefaults setObject:combinedWhitelist forKey:externalPrefDefaultName];
+					
+					// because people named Kevin Ballard messed up their preferences file and somehow
+					// managed to retain ClickToFlash_siteInfo in their com.github plist file
+					[externalFileDefaults removeObjectForKey:currentParasiticDefault];
 				}
 			}
 			// eliminate the parasitic default, regardless of whether we transferred them or not
@@ -528,6 +538,15 @@ BOOL usingMATrackingArea = NO;
 	}
 	[[NSUserDefaults standardUserDefaults] removeSuiteNamed:@"com.github.rentzsch.clicktoflash"];
 }
+
+- (void) _uniquePrefsFileWhitelist
+{
+	NSArray *siteInfoArray = [[CTFUserDefaultsController standardUserDefaults] arrayForKey:@"siteInfo"];
+	NSSet *siteInfoSet = [NSSet setWithArray:siteInfoArray];
+	
+	[[CTFUserDefaultsController standardUserDefaults] setValue:[siteInfoSet allObjects] forKeyPath:@"values.siteInfo"];
+}
+
 
 - (void) _addApplicationWhitelistArrayToPrefsFile
 {
@@ -1350,6 +1369,8 @@ didReceiveResponse:(NSHTTPURLResponse *)response
     [ element setAttribute: @"scale" value: @"aspect" ];
     if (_youTubeAutoPlay) {
 		[ element setAttribute: @"autoplay" value: @"true" ];
+	} else {
+		[ element setAttribute: @"autoplay" value: @"false" ];
 	}
     [ element setAttribute: @"cache" value: @"false" ];
 	
@@ -1367,7 +1388,10 @@ didReceiveResponse:(NSHTTPURLResponse *)response
     [ element setAttribute: @"src" value: [ self _h264VersionUrl ] ];
 	[ element setAttribute: @"autobuffer" value:@"autobuffer"];
 	if (_youTubeAutoPlay) {
-		[ element setAttribute: @"autoplay" value:@"autoplay"];
+		[ element setAttribute: @"autoplay" value:@"autoplay" ];
+	} else {
+		if ( [element hasAttribute:@"autoplay"] )
+			[ element removeAttribute:@"autoplay" ];
 	}
 	[ element setAttribute: @"controls" value:@"controls"];
 	// make videos with the wrong aspect ratio look more letterboxed. Would it be better or worse to just change the element's size?
